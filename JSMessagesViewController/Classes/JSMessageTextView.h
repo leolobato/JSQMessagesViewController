@@ -29,6 +29,8 @@
  */
 @property (strong, nonatomic) UIColor *placeHolderTextColor;
 
+@property (nonatomic, strong) UIFont *font UI_APPEARANCE_SELECTOR;
+
 /**
  *  Returns an unsigned integer describing the number of lines of text contained in the text view.
  *

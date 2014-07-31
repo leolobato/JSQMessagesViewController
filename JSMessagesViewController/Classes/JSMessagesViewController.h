@@ -88,6 +88,13 @@
 - (void)configureCell:(JSBubbleMessageCell *)cell atIndexPath:(NSIndexPath *)indexPath;
 
 /**
+ *  Asks the delegate to configure or further customize a given cell which has just been created.
+ *
+ *  @param cell      The message cell to configure.
+ */
+- (void)configureNewCell:(JSBubbleMessageCell *)cell;
+
+/**
  *  Asks the delegate if should always scroll to bottom automatically when new messages are sent or received.
  *
  *  @return `YES` if you would like to prevent the table view from being scrolled to the bottom while the user is scrolling the table view manually, `NO` otherwise.
@@ -176,6 +183,9 @@
  *  The name of the user sending messages. The default value is `nil`.
  */
 @property (copy, nonatomic) NSString *sender;
+
+@property (nonatomic, assign) UIEdgeInsets bubbleTextViewInsetsForIncomingMessages;
+@property (nonatomic, assign) UIEdgeInsets bubbleTextViewInsetsForOutgoingMessages;
 
 #pragma mark - Messages view controller
 

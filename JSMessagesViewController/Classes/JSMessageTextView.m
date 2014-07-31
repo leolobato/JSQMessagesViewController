@@ -30,6 +30,8 @@
 
 @implementation JSMessageTextView
 
+@synthesize font = _font;
+
 #pragma mark - Initialization
 
 - (void)setup
@@ -42,14 +44,15 @@
     self.scrollEnabled = YES;
     self.scrollsToTop = NO;
     self.userInteractionEnabled = YES;
-    self.font = [UIFont systemFontOfSize:16.0f];
     self.textColor = [UIColor blackColor];
     self.backgroundColor = [UIColor whiteColor];
     self.keyboardAppearance = UIKeyboardAppearanceDefault;
     self.keyboardType = UIKeyboardTypeDefault;
     self.returnKeyType = UIReturnKeyDefault;
     self.textAlignment = NSTextAlignmentLeft;
-    
+
+    [self setFont:[self font]];
+
     [self addTextViewNotificationObservers];
 }
 
@@ -77,6 +80,26 @@
     _placeHolder = nil;
     _placeHolderTextColor = nil;
 }
+
+- (void)setFont:(UIFont *)font;
+{
+    _font = font;
+    [super setFont:font];
+    [self setNeedsDisplay];
+}
+
+- (UIFont *)font;
+{
+    if (!_font) {
+        _font = [[[self class] appearance] font];
+    }
+    if (_font) {
+        return _font;
+    } else {
+        return [UIFont systemFontOfSize:16.0f];
+    }
+}
+
 
 #pragma mark - Setters
 
@@ -134,12 +157,6 @@
 - (void)setAttributedText:(NSAttributedString *)attributedText
 {
     [super setAttributedText:attributedText];
-    [self setNeedsDisplay];
-}
-
-- (void)setFont:(UIFont *)font
-{
-    [super setFont:font];
     [self setNeedsDisplay];
 }
 

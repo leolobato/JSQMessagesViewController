@@ -32,10 +32,6 @@
 - (void)addTextViewObservers;
 - (void)removeTextViewObservers;
 
-+ (CGSize)textSizeForText:(NSString *)txt;
-+ (CGSize)neededSizeForText:(NSString *)text;
-+ (CGFloat)neededHeightForText:(NSString *)text;
-
 @end
 
 
@@ -68,7 +64,7 @@
         _bubbleImageView = bubbleImageView;
         
         UITextView *textView = [[UITextView alloc] init];
-        textView.font = [UIFont systemFontOfSize:16.0f];
+        textView.font = [self font];
         textView.textColor = [UIColor blackColor];
         textView.editable = NO;
         textView.userInteractionEnabled = YES;
@@ -176,75 +172,31 @@
 
 - (CGRect)bubbleFrame
 {
-    CGSize bubbleSize = [JSBubbleView neededSizeForText:self.textView.text];
-    
-    return CGRectIntegral(CGRectMake((self.type == JSBubbleMessageTypeOutgoing ? self.frame.size.width - bubbleSize.width : 0.0f),
-                                     kMarginTop,
-                                     bubbleSize.width,
-                                     bubbleSize.height + kMarginBottom));
+    return self.bounds;
 }
 
 #pragma mark - Layout
+
+- (CGSize)sizeThatFits:(CGSize)size;
+{
+    CGSize textSize = [self.textView sizeThatFits:size];
+    textSize.height += self.textViewInset.top + self.textViewInset.bottom;
+    textSize.width += self.textViewInset.left + self.textViewInset.right;
+    
+    return textSize;
+}
 
 - (void)layoutSubviews
 {
     [super layoutSubviews];
     
-    self.bubbleImageView.frame = [self bubbleFrame];
+    self.bubbleImageView.frame = self.bounds;
     
-    CGFloat textX = self.bubbleImageView.frame.origin.x;
-    
-    if (self.type == JSBubbleMessageTypeIncoming) {
-        textX += (self.bubbleImageView.image.capInsets.left / 2.0f);
-    }
-    
-    CGRect textFrame = CGRectMake(textX,
-                                  self.bubbleImageView.frame.origin.y,
-                                  self.bubbleImageView.frame.size.width - (self.bubbleImageView.image.capInsets.right / 2.0f),
-                                  self.bubbleImageView.frame.size.height - kMarginTop);
-    
+    CGRect textFrame = CGRectMake(self.textViewInset.left,
+                                  self.textViewInset.top,
+                                  self.bounds.size.width-self.textViewInset.left-self.textViewInset.right,
+                                  self.bounds.size.height-self.textViewInset.top-self.textViewInset.bottom);
     self.textView.frame = CGRectIntegral(textFrame);
-}
-
-#pragma mark - Bubble view
-
-+ (CGSize)textSizeForText:(NSString *)txt
-{
-    CGFloat maxWidth = [UIScreen mainScreen].applicationFrame.size.width * 0.70f;
-    CGFloat maxHeight = MAX([JSMessageTextView numberOfLinesForMessage:txt],
-                         [txt js_numberOfLines]) * [JSMessageInputView textViewLineHeight];
-    maxHeight += kJSAvatarImageSize;
-    
-    CGSize stringSize;
-    
-    if (NSFoundationVersionNumber > NSFoundationVersionNumber_iOS_6_0) {
-        CGRect stringRect = [txt boundingRectWithSize:CGSizeMake(maxWidth, maxHeight)
-                                              options:NSStringDrawingUsesLineFragmentOrigin
-                                           attributes:@{ NSFontAttributeName : [[JSBubbleView appearance] font] }
-                                              context:nil];
-        
-        stringSize = CGRectIntegral(stringRect).size;
-    }
-    else {
-        stringSize = [txt sizeWithFont:[[JSBubbleView appearance] font]
-                     constrainedToSize:CGSizeMake(maxWidth, maxHeight)];
-    }
-    
-    return CGSizeMake(roundf(stringSize.width), roundf(stringSize.height));
-}
-
-+ (CGSize)neededSizeForText:(NSString *)text
-{
-    CGSize textSize = [JSBubbleView textSizeForText:text];
-    
-	return CGSizeMake(textSize.width + kBubblePaddingRight,
-                      textSize.height + kPaddingTop + kPaddingBottom);
-}
-
-+ (CGFloat)neededHeightForText:(NSString *)text
-{
-    CGSize size = [JSBubbleView neededSizeForText:text];
-    return size.height + kMarginTop + kMarginBottom;
 }
 
 @end

@@ -18,6 +18,8 @@
 
 @interface JSMessagesViewController () <JSDismissiveTextViewDelegate>
 
+@property (strong, nonatomic) JSBubbleMessageCell *measureCell;
+
 @property (assign, nonatomic) CGFloat previousTextViewContentHeight;
 @property (assign, nonatomic) BOOL isUserScrolling;
 
@@ -44,6 +46,8 @@
 
 
 @implementation JSMessagesViewController
+
+@synthesize measureCell = _measureCell;
 
 #pragma mark - Initialization
 
@@ -251,10 +255,19 @@
                                              displaysTimestamp:displayTimestamp
                                                      hasAvatar:avatar != nil
                                                reuseIdentifier:CellIdentifier];
+        if (type==JSBubbleMessageTypeIncoming) {
+            cell.bubbleView.textViewInset = self.bubbleTextViewInsetsForIncomingMessages;
+        } else {
+            cell.bubbleView.textViewInset = self.bubbleTextViewInsetsForOutgoingMessages;
+        }
+        
+        if ([self.delegate respondsToSelector:@selector(configureNewCell:)]) {
+            [self.delegate configureNewCell:cell];
+        }
     }
     
-    [cell setMessage:message];
     [cell setAvatarImageView:avatar];
+    [cell setMessage:message];
     [cell setBackgroundColor:tableView.backgroundColor];
 	
     if ([self.delegate respondsToSelector:@selector(configureCell:atIndexPath:)]) {
@@ -266,8 +279,22 @@
 
 #pragma mark - Table view delegate
 
+- (JSBubbleMessageCell *)measureCell;
+{
+    if (!_measureCell) {
+        _measureCell = [[JSBubbleMessageCell alloc] initWithBubbleType:JSBubbleMessageTypeOutgoing
+                                                       bubbleImageView:[JSBubbleImageViewFactory bubbleImageViewForType:JSBubbleMessageTypeIncoming color:[UIColor blackColor]]
+                                                               message:nil
+                                                     displaysTimestamp:NO
+                                                             hasAvatar:YES
+                                                       reuseIdentifier:@"static"];
+    }
+    return _measureCell;
+}
+
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
 {
+    JSBubbleMessageType type = [self.delegate messageTypeForRowAtIndexPath:indexPath];
     id<JSMessageData> message = [self.dataSource messageForRowAtIndexPath:indexPath];
     UIImageView *avatar = [self.dataSource avatarImageViewForRowAtIndexPath:indexPath sender:[message sender]];
     
@@ -276,9 +303,18 @@
         displayTimestamp = [self.delegate shouldDisplayTimestampForRowAtIndexPath:indexPath];
     }
     
-    return [JSBubbleMessageCell neededHeightForBubbleMessageCellWithMessage:message
-                                                             displaysAvatar:avatar != nil
-                                                          displaysTimestamp:displayTimestamp];
+    JSBubbleMessageCell *cell = [self measureCell];
+    if (type==JSBubbleMessageTypeIncoming) {
+        cell.bubbleView.textViewInset = self.bubbleTextViewInsetsForIncomingMessages;
+    } else {
+        cell.bubbleView.textViewInset = self.bubbleTextViewInsetsForOutgoingMessages;
+    }
+    cell.displaysTimestamp = displayTimestamp;
+    cell.hasAvatar = avatar!=nil;
+    [cell setMessage:message];
+    
+    CGSize size = [cell sizeThatFits:CGSizeMake(1000.0f, MAXFLOAT)];
+    return size.height;
 }
 
 #pragma mark - Messages view controller

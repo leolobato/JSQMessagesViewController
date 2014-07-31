@@ -74,7 +74,7 @@
  *
  *  @param message An object that conforms to the `JSMessageData` protocol containing the message data for the cell.
  */
-- (void)setMessage:(id<JSMessageData>)message;
+@property (nonatomic, strong) id<JSMessageData>message;
 
 /**
  *  Sets the imageView for the avatarImageView of the cell. The frame is set for you by `JSBubbleMessageCell`.
@@ -92,6 +92,16 @@
  *  @return A contant indicating the message type.
  */
 - (JSBubbleMessageType)messageType;
+
+#pragma mark - Dimensions
+
+@property (nonatomic, assign) BOOL displaysTimestamp;
+@property (nonatomic, assign) BOOL hasAvatar;
+
+
+#pragma mark - Appearance
+
+@property (nonatomic, strong) UIFont *timeStampFont UI_APPEARANCE_SELECTOR;
 
 #pragma mark - Class methods
 

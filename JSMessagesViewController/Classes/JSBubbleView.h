@@ -47,6 +47,8 @@
  */
 @property (strong, nonatomic) UIFont *font UI_APPEARANCE_SELECTOR;
 
+@property (nonatomic, assign) UIEdgeInsets textViewInset;
+
 #pragma mark - Initialization
 
 /**
@@ -70,16 +72,5 @@
  *  @return The frame of the bubble view.
  */
 - (CGRect)bubbleFrame;
-
-#pragma mark - Class methods
-
-/**
- *  Computes and returns the minimum necessary height of a `JSBubbleView` needed to display the given text.
- *
- *  @param text The text to display in the bubble view.
- *
- *  @return The height required for the frame of the bubble view in order to display the given text.
- */
-+ (CGFloat)neededHeightForText:(NSString *)text;
 
 @end

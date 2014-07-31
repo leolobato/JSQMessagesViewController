@@ -166,6 +166,7 @@
     if (_sendButton)
         [_sendButton removeFromSuperview];
     
+    // TODO: size according to send button size
     if (self.style == JSMessageInputViewStyleClassic) {
         btn.frame = CGRectMake(self.frame.size.width - 65.0f, 8.0f, 59.0f, 26.0f);
     }
@@ -222,6 +223,8 @@
 
 + (CGFloat)textViewLineHeight
 {
+    // TODO: according to font size
+    
     return 36.0f; // for fontSize 16.0f
 }
 

@@ -18,7 +18,6 @@
 #import "UIColor+JSMessagesView.h"
 
 static const CGFloat kJSLabelPadding = 5.0f;
-static const CGFloat kJSTimeStampLabelHeight = 15.0f;
 static const CGFloat kJSSubtitleLabelHeight = 15.0f;
 
 
@@ -44,11 +43,17 @@ static const CGFloat kJSSubtitleLabelHeight = 15.0f;
 - (void)handleMenuWillHideNotification:(NSNotification *)notification;
 - (void)handleMenuWillShowNotification:(NSNotification *)notification;
 
+@property (nonatomic, assign) BOOL mustForceLayout;
+@property (nonatomic, assign) CGSize calculatedSize;
+
 @end
 
 
 
 @implementation JSBubbleMessageCell
+
+@synthesize message = _message;
+@synthesize timeStampFont = _timeStampFont;
 
 #pragma mark - Setup
 
@@ -77,14 +82,14 @@ static const CGFloat kJSSubtitleLabelHeight = 15.0f;
     UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(kJSLabelPadding,
                                                                kJSLabelPadding,
                                                                self.contentView.frame.size.width - (kJSLabelPadding * 2.0f),
-                                                               kJSTimeStampLabelHeight)];
+                                                               40.0f)];
     label.autoresizingMask =  UIViewAutoresizingFlexibleWidth;
     label.backgroundColor = [UIColor clearColor];
     label.textAlignment = NSTextAlignmentCenter;
     label.textColor = [UIColor js_messagesTimestampColorClassic];
     label.shadowColor = [UIColor whiteColor];
     label.shadowOffset = CGSizeMake(0.0f, 1.0f);
-    label.font = [UIFont boldSystemFontOfSize:12.0f];
+    label.font = self.timeStampFont;
     
     [self.contentView addSubview:label];
     [self.contentView bringSubviewToFront:label];
@@ -93,17 +98,7 @@ static const CGFloat kJSSubtitleLabelHeight = 15.0f;
 
 - (void)configureAvatarImageView:(UIImageView *)imageView forMessageType:(JSBubbleMessageType)type
 {
-    CGFloat avatarX = 0.5f;
-    if (type == JSBubbleMessageTypeOutgoing) {
-        avatarX = (self.contentView.frame.size.width - kJSAvatarImageSize);
-    }
-    
-    CGFloat avatarY = self.contentView.frame.size.height - kJSAvatarImageSize;
-    if (_subtitleLabel) {
-        avatarY -= kJSSubtitleLabelHeight;
-    }
-    
-    imageView.frame = CGRectMake(avatarX, avatarY, kJSAvatarImageSize, kJSAvatarImageSize);
+    imageView.frame = CGRectMake(0.0f, 0.0f, kJSAvatarImageSize, kJSAvatarImageSize);
     imageView.autoresizingMask = (UIViewAutoresizingFlexibleTopMargin
                                          | UIViewAutoresizingFlexibleLeftMargin
                                          | UIViewAutoresizingFlexibleRightMargin);
@@ -131,43 +126,12 @@ static const CGFloat kJSSubtitleLabelHeight = 15.0f;
          displaysTimestamp:(BOOL)displaysTimestamp
                    avatar:(BOOL)hasAvatar
 {
-    CGFloat bubbleY = 0.0f;
-    CGFloat bubbleX = 0.0f;
+    self.displaysTimestamp = displaysTimestamp;
+    self.hasAvatar = hasAvatar;
     
-    CGFloat offsetX = 0.0f;
-    
-    if (displaysTimestamp) {
-        [self configureTimestampLabel];
-        bubbleY = 14.0f;
-    }
-    
-    if ([message sender]) {
-		[self configureSubtitleLabelForMessageType:type];
-	}
-    
-    if (hasAvatar) {
-        offsetX = 4.0f;
-        bubbleX = kJSAvatarImageSize;
-        if (type == JSBubbleMessageTypeOutgoing) {
-            offsetX = kJSAvatarImageSize - 4.0f;
-        }
-        
-        [self configureAvatarImageView:[[UIImageView alloc] init] forMessageType:type];
-    }
-    
-    CGRect frame = CGRectMake(bubbleX - offsetX,
-                              bubbleY,
-                              self.contentView.frame.size.width - bubbleX,
-                              self.contentView.frame.size.height - _timestampLabel.frame.size.height - _subtitleLabel.frame.size.height);
-    
-    JSBubbleView *bubbleView = [[JSBubbleView alloc] initWithFrame:frame
+    JSBubbleView *bubbleView = [[JSBubbleView alloc] initWithFrame:self.contentView.bounds
                                                         bubbleType:type
                                                    bubbleImageView:bubbleImageView];
-    
-    bubbleView.autoresizingMask = (UIViewAutoresizingFlexibleWidth
-                                    | UIViewAutoresizingFlexibleHeight
-                                    | UIViewAutoresizingFlexibleBottomMargin);
-    
     [self.contentView addSubview:bubbleView];
     [self.contentView sendSubviewToBack:bubbleView];
     _bubbleView = bubbleView;
@@ -216,10 +180,6 @@ static const CGFloat kJSSubtitleLabelHeight = 15.0f;
 - (void)prepareForReuse
 {
     [super prepareForReuse];
-    self.bubbleView.textView.text = nil;
-    self.timestampLabel.text = nil;
-    self.avatarImageView = nil;
-    self.subtitleLabel.text = nil;
 }
 
 - (void)setBackgroundColor:(UIColor *)color
@@ -231,28 +191,50 @@ static const CGFloat kJSSubtitleLabelHeight = 15.0f;
 
 #pragma mark - Setters
 
-- (void)setText:(NSString *)text
+- (id<JSMessageData>)message;
 {
-    self.bubbleView.textView.text = text;
-}
-
-- (void)setTimestamp:(NSDate *)date
-{
-    self.timestampLabel.text = [NSDateFormatter localizedStringFromDate:date
-                                                              dateStyle:NSDateFormatterMediumStyle
-                                                              timeStyle:NSDateFormatterShortStyle];
-}
-
-- (void)setSubtitle:(NSString *)subtitle
-{
-	self.subtitleLabel.text = subtitle;
+    return _message;
 }
 
 - (void)setMessage:(id<JSMessageData>)message
 {
-    [self setText:[message text]];
-    [self setTimestamp:[message date]];
-    [self setSubtitle:[message sender]];
+    if (_message!=message) {
+        _message = message;
+        
+        // Message
+        self.bubbleView.textView.text = [message text];
+        
+        // Timestamp
+        if (self.displaysTimestamp) {
+            if (!self.timestampLabel) {
+                [self configureTimestampLabel];
+            }
+            self.timestampLabel.text = [NSDateFormatter localizedStringFromDate:[message date]
+                                                                      dateStyle:NSDateFormatterMediumStyle
+                                                                      timeStyle:NSDateFormatterShortStyle];
+        } else {
+            if (self.timestampLabel) {
+                [self.timestampLabel removeFromSuperview];
+                _timestampLabel = nil;
+            }
+        }
+        
+        // Subtitle
+        NSString *subtitle = [message sender];
+        if (subtitle.length>0) {
+            if (!self.subtitleLabel) {
+                [self configureSubtitleLabelForMessageType:self.messageType];
+            }
+            self.subtitleLabel.text = subtitle;
+        } else {
+            [self.subtitleLabel removeFromSuperview];
+            _subtitleLabel = nil;
+        }
+        
+        // Layout
+        [self setNeedsLayout];
+        self.mustForceLayout = YES;
+    }
 }
 
 - (void)setAvatarImageView:(UIImageView *)imageView
@@ -263,6 +245,11 @@ static const CGFloat kJSSubtitleLabelHeight = 15.0f;
     [self configureAvatarImageView:imageView forMessageType:[self messageType]];
 }
 
+- (void)setTimeStampFont:(UIFont *)timeStampFont;
+{
+    _timeStampFont = timeStampFont;
+}
+
 #pragma mark - Getters
 
 - (JSBubbleMessageType)messageType
@@ -270,21 +257,36 @@ static const CGFloat kJSSubtitleLabelHeight = 15.0f;
     return _bubbleView.type;
 }
 
-#pragma mark - Class methods
-
-+ (CGFloat)neededHeightForBubbleMessageCellWithMessage:(id<JSMessageData>)message
-                                        displaysAvatar:(BOOL)displaysAvatar
-                                     displaysTimestamp:(BOOL)displaysTimestamp
+- (UIFont *)timeStampFont;
 {
-    CGFloat timestampHeight = displaysTimestamp ? kJSTimeStampLabelHeight : 0.0f;
-    CGFloat avatarHeight = displaysAvatar ? kJSAvatarImageSize : 0.0f;
-	CGFloat subtitleHeight = [message sender] ? kJSSubtitleLabelHeight : 0.0f;
+    if (!_timeStampFont) {
+        _timeStampFont = [[[self class] appearance] timeStampFont];
+    }
+    if (_timeStampFont) {
+        return _timeStampFont;
+    } else {
+        return  [UIFont boldSystemFontOfSize:12.0f];
+    }
+}
+
+#pragma mark - Measurement
+
++ (CGFloat)maxWidth;
+{
+    CGFloat maxWidth = [UIScreen mainScreen].applicationFrame.size.width * 0.70f; // TODO: use constant?
+    return maxWidth;
+}
+
+- (CGSize)sizeThatFits:(CGSize)size;
+{
+    size.width = [[self class] maxWidth];
+    if (self.mustForceLayout) {
+        [self layoutSubviews];
+    } else {
+        [self layoutIfNeeded];
+    }
     
-    CGFloat subviewHeights = timestampHeight + subtitleHeight + kJSLabelPadding;
-    
-    CGFloat bubbleHeight = [JSBubbleView neededHeightForText:[message text]];
-    
-    return subviewHeights + MAX(avatarHeight, bubbleHeight);
+    return self.calculatedSize;
 }
 
 #pragma mark - Layout
@@ -292,13 +294,90 @@ static const CGFloat kJSSubtitleLabelHeight = 15.0f;
 - (void)layoutSubviews
 {
     [super layoutSubviews];
+    CGRect rect = CGRectZero;
     
-    if (self.subtitleLabel) {
-        self.subtitleLabel.frame = CGRectMake(kJSLabelPadding,
-                                              self.contentView.frame.size.height - kJSSubtitleLabelHeight,
-                                              self.contentView.frame.size.width - (kJSLabelPadding * 2.0f),
-                                              kJSSubtitleLabelHeight);
+    CGFloat subtitleY = 0.0f;
+    CGFloat bubbleY = 0.0f;
+    CGFloat bubbleX = 0.0f;
+    CGSize avatarSize = CGSizeMake(kJSAvatarImageSize, kJSAvatarImageSize);
+    CGFloat maxWidth = [[self class] maxWidth];
+    CGFloat maxBubbleWidth = maxWidth - avatarSize.width;
+    CGSize bubbleSize = [self.bubbleView sizeThatFits:CGSizeMake(maxBubbleWidth, MAXFLOAT)];;
+    
+    // Margins
+    CGFloat marginAboveTimestamp = CC_IDIOM_IPHONE ? 6.0f : 8.0f;
+    CGFloat marginBetweenTimestampAndBubble = CC_IDIOM_IPHONE ? 4.0f : 12.0f;
+    CGFloat bottomMargin = CC_IDIOM_IPHONE ? 4.0f : 12.0f;
+    
+    // Timestamp
+    if (self.displaysTimestamp) {
+        rect = self.timestampLabel.frame;
+        rect.origin.y = marginAboveTimestamp;
+        rect.origin.x = 0.0f;
+        rect.size.width = self.contentView.bounds.size.width;
+        rect.size.height = [self.timestampLabel sizeThatFits:CGSizeMake(rect.size.width, 200.0f)].height;
+        self.timestampLabel.frame = rect;
+        bubbleY = CGRectGetMaxY(rect) + marginBetweenTimestampAndBubble;
     }
+
+    // Avatar view
+    CGRect avatarFrame = CGRectZero;
+    if (self.hasAvatar || self.avatarImageView.image!=nil) {
+        rect = self.avatarImageView.frame;
+        rect.size = avatarSize;
+        if (bubbleY+bubbleSize.height<avatarSize.height+bubbleY) {
+            bubbleY += avatarSize.height - bubbleSize.height;
+            rect.origin.y = bubbleY;
+        } else {
+            rect.origin.y = bubbleY + bubbleSize.height - rect.size.height;
+        }
+        if (self.messageType==JSBubbleMessageTypeOutgoing) {
+            rect.origin.x = self.bounds.size.width - rect.size.width;
+            bubbleX = rect.origin.x - bubbleSize.width;
+        } else {
+            rect.origin.x = 0.0f;
+            bubbleX = CGRectGetMaxX(rect);
+        }
+        self.avatarImageView.frame = rect;
+        avatarFrame = rect;
+        subtitleY = CGRectGetMaxY(rect);
+    } else {
+        subtitleY = bubbleY + bubbleSize.height;
+        if (self.messageType==JSBubbleMessageTypeOutgoing) {
+            bubbleX = self.bounds.size.width - bubbleSize.width;
+        } else {
+            bubbleX = 0.0f;
+        }
+    }
+    
+    // Bubble
+    rect = self.bubbleView.frame;
+    rect.size = bubbleSize;
+    rect.origin.x = bubbleX;
+    rect.origin.y = bubbleY;
+    self.bubbleView.frame = rect;
+
+    // Subtitle
+    if (self.subtitleLabel) {
+        rect = self.subtitleLabel.frame;
+        rect.origin.y = subtitleY;
+        rect.origin.x = 0.0f;
+        rect.size.width = self.bounds.size.width;
+        rect.size.height = [self.subtitleLabel sizeThatFits:CGSizeMake(rect.size.width, 200.0f)].height;
+        self.subtitleLabel.frame = rect;
+    }
+
+    self.mustForceLayout = NO;
+
+    // Calculate total size
+    CGFloat height = CGRectGetMaxY(rect); // Subtitle or Bubble
+    if (self.hasAvatar) {
+        height = MAX(CGRectGetMaxY(avatarFrame), height);
+    }
+    height += bottomMargin;
+    CGFloat width = avatarSize.width + self.bubbleView.frame.size.width;
+    
+    self.calculatedSize = CGSizeMake(width, height);
 }
 
 #pragma mark - Copying
