@@ -305,9 +305,9 @@ static const CGFloat kJSSubtitleLabelHeight = 15.0f;
     CGSize bubbleSize = [self.bubbleView sizeThatFits:CGSizeMake(maxBubbleWidth, MAXFLOAT)];;
     
     // Margins
-    CGFloat marginAboveTimestamp = CC_IDIOM_IPHONE ? 6.0f : 8.0f;
-    CGFloat marginBetweenTimestampAndBubble = CC_IDIOM_IPHONE ? 4.0f : 12.0f;
-    CGFloat bottomMargin = CC_IDIOM_IPHONE ? 4.0f : 12.0f;
+    CGFloat marginAboveTimestamp = UI_USER_INTERFACE_IDIOM()==UIUserInterfaceIdiomPhone ? 6.0f : 8.0f;
+    CGFloat marginBetweenTimestampAndBubble = UI_USER_INTERFACE_IDIOM()==UIUserInterfaceIdiomPhone ? 4.0f : 12.0f;
+    CGFloat bottomMargin = UI_USER_INTERFACE_IDIOM()==UIUserInterfaceIdiomPhone ? 4.0f : 12.0f;
     
     // Timestamp
     if (self.displaysTimestamp) {
