@@ -47,8 +47,10 @@
     
     CGFloat width = self.bounds.size.width - sendButtonWidth;
     CGFloat height = [JSMessageInputView textViewLineHeight];
-    
-    JSMessageTextView *textView = [[JSMessageTextView  alloc] initWithFrame:CGRectZero];
+
+    CGRect rect = CGRectMake(0.0f, 0.0f, width, [JSMessageInputView textViewLineHeight]);
+    JSMessageTextView *textView = [[JSMessageTextView  alloc] initWithFrame:rect];
+    textView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     [self addSubview:textView];
 	_textView = textView;
     
@@ -190,10 +192,11 @@
     self.sendButton.frame = rect;
 
     // Text view
+    rect = _textView.frame;
     rect.origin.x = xMargin;
     rect.origin.y = yMargin;
+    rect.size.height = self.bounds.size.height - (rect.origin.y*2.0f);
     rect.size.width = self.sendButton.frame.origin.x - xSpacing - rect.origin.x;
-    rect.size.height = [JSMessageInputView textViewLineHeight];
     _textView.frame = rect;
 }
 
