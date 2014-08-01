@@ -45,7 +45,7 @@
 {
     CGFloat sendButtonWidth = (style == JSMessageInputViewStyleClassic) ? 78.0f : 64.0f;
     
-    CGFloat width = self.frame.size.width - sendButtonWidth;
+    CGFloat width = self.bounds.size.width - sendButtonWidth;
     CGFloat height = [JSMessageInputView textViewLineHeight];
     
     JSMessageTextView *textView = [[JSMessageTextView  alloc] initWithFrame:CGRectZero];
@@ -62,7 +62,7 @@
         UIImageView *inputFieldBack = [[UIImageView alloc] initWithFrame:CGRectMake(_textView.frame.origin.x - 1.0f,
                                                                                     0.0f,
                                                                                     _textView.frame.size.width + 2.0f,
-                                                                                    self.frame.size.height)];
+                                                                                    self.bounds.size.height)];
         inputFieldBack.image = [[UIImage imageNamed:@"input-field-cover"] resizableImageWithCapInsets:UIEdgeInsetsMake(20.0f, 12.0f, 18.0f, 18.0f)];
         inputFieldBack.autoresizingMask = (UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight);
         inputFieldBack.backgroundColor = [UIColor clearColor];
@@ -104,6 +104,7 @@
         [sendButton setTitleColor:[UIColor colorWithWhite:1.0f alpha:0.5f] forState:UIControlStateDisabled];
         
         sendButton.titleLabel.font = [UIFont boldSystemFontOfSize:16.0f];
+        sendButton.frame = CGRectMake(0.0f, 0.0f, 59.0f, 26.0f);
     }
     else {
         sendButton = [UIButton buttonWithType:UIButtonTypeCustom];
@@ -114,6 +115,7 @@
         [sendButton setTitleColor:[UIColor js_bubbleLightGrayColor] forState:UIControlStateDisabled];
         
         sendButton.titleLabel.font = [UIFont boldSystemFontOfSize:18.0f];
+        sendButton.frame = CGRectMake(0.0f, 0.0f, 60.0f, 30.0f);
     }
     
     NSString *title = NSLocalizedString(@"Send", nil);
@@ -163,23 +165,36 @@
 
 - (void)setSendButton:(UIButton *)btn
 {
-    if (_sendButton)
-        [_sendButton removeFromSuperview];
-    
-    // TODO: size according to send button size
-    if (self.style == JSMessageInputViewStyleClassic) {
-        btn.frame = CGRectMake(self.frame.size.width - 65.0f, 8.0f, 59.0f, 26.0f);
-    }
-    else {
-        CGFloat padding = 8.0f;
-        btn.frame = CGRectMake(self.textView.frame.origin.x + self.textView.frame.size.width,
-                               padding,
-                               60.0f,
-                               self.textView.frame.size.height - padding);
-    }
+    [_sendButton removeFromSuperview];
     
     [self addSubview:btn];
     _sendButton = btn;
+
+    [self setNeedsLayout];
+}
+
+#pragma mark - Layout
+
+- (void)layoutSubviews;
+{
+    [super layoutSubviews];
+    
+    CGFloat xMargin = (UI_USER_INTERFACE_IDIOM()==UIUserInterfaceIdiomPhone ? 6.0f : 10.0f);
+    CGFloat xSpacing = (UI_USER_INTERFACE_IDIOM()==UIUserInterfaceIdiomPhone ? 10.0f : 20.0f);
+    CGFloat yMargin = 3.0f;
+    
+    // Send button
+    CGRect rect = self.sendButton.frame;
+    rect.origin.x = self.bounds.size.width - rect.size.width - xMargin;
+    rect.origin.y = floorf((self.bounds.size.height-rect.size.height)/2.0f);
+    self.sendButton.frame = rect;
+
+    // Text view
+    rect.origin.x = xMargin;
+    rect.origin.y = yMargin;
+    rect.size.width = self.sendButton.frame.origin.x - xSpacing - rect.origin.x;
+    rect.size.height = [JSMessageInputView textViewLineHeight];
+    _textView.frame = rect;
 }
 
 #pragma mark - Message input view
