@@ -156,7 +156,8 @@
     if ([self.text length] == 0 && self.placeHolder) {
         [self.placeHolderTextColor set];
 
-        [self.placeHolder drawInRect:CGRectInset(rect, 7.0f, 5.0f)
+        CGFloat verticalPadding = [UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPhone ? 5.0 : 0.0f;
+        [self.placeHolder drawInRect:CGRectInset(rect, 7.0f, verticalPadding)
                       withAttributes:[self jsq_placeholderTextAttributes]];
     }
 }
